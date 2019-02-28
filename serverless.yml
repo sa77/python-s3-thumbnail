@@ -20,43 +20,42 @@ service: python-s3-thumbnail # NOTE: update this with your service name
 provider:
   name: aws
   runtime: python2.7
+  region: ap-southeast-2
+  profile: serverless-admin
+  timeout: 10
+  memory: 128
+  # these are the permissions that the lambda functions will have (i.e to execute s3.put and s3.get)
+  iamRoleStatements:
+  - Effect: 'Allow'
+    Action:
+      - "s3:*"
+    Resource: "*"
+  environment:
+    THUMBNAIL_SIZE: "128"
 
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
 
-# you can add statements to the Lambda function's IAM Role here
-#  iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:ListBucket"
-#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:PutObject"
-#      Resource:
-#        Fn::Join:
-#          - ""
-#          - - "arn:aws:s3:::"
-#            - "Ref" : "ServerlessDeploymentBucket"
-#            - "/*"
-
-# you can define service wide environment variables here
-#  environment:
-#    variable1: value1
-
-# you can add packaging information here
-#package:
-#  include:
-#    - include-me.py
-#    - include-me-dir/**
-#  exclude:
-#    - exclude-me.py
-#    - exclude-me-dir/**
+custom:
+  bucket: array101-s3-thumbnail-generator
+  pythonRequirements:
+    dockerizePip: true
 
 functions:
-  hello:
-    handler: handler.hello
+  s3-thumbnail-generator:
+    handler: handler.s3_thumbnail_generator
+    events:
+      - s3:
+          bucket: ${self:custom.bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .png
+
+# ${self:custom.bucket} --> this is a variable in serverless framework
+
+
+plugins:
+- serverless-python-requirements
+
+# ^^ this installs anything that's in requirements.txt file -> uses docker
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
